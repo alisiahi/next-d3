@@ -98,7 +98,9 @@ const KreisMap = ({ selectedData }) => {
         tooltip
           .style("opacity", 1)
           .html(
-            `<strong>${d.properties.name}</strong><br>${selectedData}: ${displayValue}`
+            `<strong>${d.properties.name}</strong>${
+              selectedData ? `<br>${selectedData}: ${displayValue}` : ""
+            }`
           );
 
         d3.select(this).attr("fill", "rgba(0, 0, 0, 0.3)"); // Slight highlight on hover
@@ -159,7 +161,6 @@ const KreisMap = ({ selectedData }) => {
 
   return (
     <div className="relative">
-      <p>Selected Data: {selectedData || "None"}</p>
       <svg ref={svgRef} width={width} height={height} className="border" />
       {selectedKreis && (
         <button

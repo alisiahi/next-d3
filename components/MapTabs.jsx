@@ -6,7 +6,11 @@ import BundMap from "./BundMap";
 import BundeslandMap from "./BundeslandMap";
 import KreisMap from "./KreisMap";
 
-const MapTabs = ({ selectedData }) => {
+const MapTabs = ({
+  selectedData,
+  bundAggregatedData,
+  bundeslandAggregatedData,
+}) => {
   const [activeTab, setActiveTab] = useState("bund");
 
   return (
@@ -19,11 +23,17 @@ const MapTabs = ({ selectedData }) => {
         </TabsList>
 
         <TabsContent value="bund" className="flex justify-center p-4">
-          <BundMap />
+          <BundMap
+            selectedData={selectedData}
+            bundAggregatedData={bundAggregatedData}
+          />
         </TabsContent>
 
         <TabsContent value="bundesland" className="flex justify-center p-4">
-          <BundeslandMap />
+          <BundeslandMap
+            selectedData={selectedData}
+            bundeslandAggregatedData={bundeslandAggregatedData}
+          />
         </TabsContent>
 
         <TabsContent value="kreis" className="flex justify-center p-4">

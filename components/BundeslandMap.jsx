@@ -3,33 +3,35 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-const BundeslandMap = () => {
+const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
   const svgRef = useRef(null);
   const [selectedBundesland, setSelectedBundesland] = useState(null);
   const width = 800;
   const height = 600;
-  const initialScale = 1; // Default zoom level
-  const initialTranslate = [0, 0]; // Default position
+  const initialScale = 1;
+  const initialTranslate = [0, 0];
 
   useEffect(() => {
     const loadBundeslandMap = async () => {
       try {
+        if (!bundeslandAggregatedData) return;
+
         const response = await fetch("/2_hoch.geo.json");
         const data = await response.json();
 
         const svg = d3.select(svgRef.current);
-        svg.selectAll("*").remove(); // Clear previous map
+        svg.selectAll("*").remove();
 
         const projection = d3.geoMercator().fitSize([width, height], data);
         const pathGenerator = d3.geoPath().projection(projection);
 
-        // Append the group element for zooming
         const g = svg.append("g");
 
-        // Create a tooltip div
+        // Tooltip setup
         const tooltip = d3
           .select("body")
           .append("div")
+          .attr("id", "tooltip")
           .style("position", "absolute")
           .style("background", "rgba(0, 0, 0, 0.7)")
           .style("color", "#fff")
@@ -39,49 +41,83 @@ const BundeslandMap = () => {
           .style("pointer-events", "none")
           .style("opacity", 0);
 
-        // Add Bundesländer paths
+        // Mapping for selected data
+        const dataKeyMap = {
+          Population: "population",
+          "Death Rate": "death_rate",
+          Cases: "cases",
+          "Cases per 100K": "cases_per_100k",
+        };
+
+        const dataKey = dataKeyMap[selectedData];
+
+        // Compute color scale
+        const values = Object.values(bundeslandAggregatedData)
+          .map((d) => d[dataKey])
+          .filter((v) => v !== undefined);
+
+        const min = d3.min(values);
+        const max = d3.max(values);
+        const colorScale = d3
+          .scaleSequential(d3.interpolateBlues)
+          .domain([min, max]);
+
         g.selectAll("path")
           .data(data.features)
           .enter()
           .append("path")
           .attr("d", pathGenerator)
-          .attr("fill", "rgba(0, 0, 0, 0.1)") // Light fill
-          .attr("stroke", "#000") // Bundesland borders
-          .attr("stroke-width", 1)
-          .on("click", function (event, d) {
-            setSelectedBundesland(d.properties.name);
-            zoomToFeature(d);
-
-            // Reset all paths before highlighting the clicked one
-            g.selectAll("path")
-              .attr("stroke", "#000") // Reset to black
-              .attr("stroke-width", 1);
-
-            // Highlight the selected Bundesland
-            d3.select(this).attr("stroke", "#ff0000").attr("stroke-width", 2);
+          .attr("fill", (d) => {
+            const bundeslandName = d.properties.name;
+            const value = bundeslandAggregatedData[bundeslandName]?.[dataKey];
+            return value !== undefined ? colorScale(value) : "#ccc";
           })
+          .attr("stroke", "#000")
+          .attr("stroke-width", (d) =>
+            d.properties.name === selectedBundesland ? 2 : 1
+          )
           .on("mouseover", function (event, d) {
-            tooltip.style("opacity", 1).html(d.properties.name); // Display Bundesland name
-            d3.select(this).attr("fill", "rgba(0, 0, 0, 0.3)"); // Slight highlight on hover
+            const bundeslandName = d.properties.name;
+            const value = bundeslandAggregatedData[bundeslandName]?.[dataKey];
+            const displayValue =
+              value !== undefined ? value.toLocaleString() : "N/A";
+
+            tooltip
+              .style("opacity", 1)
+              .html(
+                `<strong>${bundeslandName}</strong>${
+                  selectedData ? `<br>${selectedData}: ${displayValue}` : ""
+                }`
+              );
+
+            d3.select(this).attr("fill", "rgba(0, 0, 0, 0.3)");
           })
           .on("mousemove", function (event) {
             tooltip
               .style("left", event.pageX + 10 + "px")
               .style("top", event.pageY - 20 + "px");
           })
-          .on("mouseout", function () {
+          .on("mouseout", function (event, d) {
             tooltip.style("opacity", 0);
-            d3.select(this).attr("fill", "rgba(0, 0, 0, 0.1)"); // Reset fill color
+            const bundeslandName = d.properties.name;
+            const value = bundeslandAggregatedData[bundeslandName]?.[dataKey];
+
+            d3.select(this)
+              .attr("fill", value !== undefined ? colorScale(value) : "#ccc")
+              .attr("stroke", "#000");
+          })
+          .on("click", function (event, d) {
+            setSelectedBundesland(d.properties.name);
+            zoomToFeature(d);
           });
 
-        // Zoom behavior
+        // D3 zoom functionality
         const zoom = d3.zoom().on("zoom", (event) => {
           g.attr("transform", event.transform);
         });
 
         svg.call(zoom);
 
-        // Function to zoom into a Bundesland
         const zoomToFeature = (feature) => {
           const [[x0, y0], [x1, y1]] = pathGenerator.bounds(feature);
           const dx = x1 - x0;
@@ -100,7 +136,6 @@ const BundeslandMap = () => {
             );
         };
 
-        // Function to reset zoom
         const resetZoom = () => {
           setSelectedBundesland(null);
           svg
@@ -112,7 +147,6 @@ const BundeslandMap = () => {
             );
         };
 
-        // Store reset function globally
         window.resetBundeslandZoom = resetZoom;
       } catch (error) {
         console.error("Error loading Bundesland map:", error);
@@ -120,7 +154,7 @@ const BundeslandMap = () => {
     };
 
     loadBundeslandMap();
-  }, []);
+  }, [bundeslandAggregatedData, selectedData]);
 
   return (
     <div className="relative">
