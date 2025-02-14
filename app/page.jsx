@@ -18,9 +18,9 @@ export default function Home() {
         const bundeslandAggregation = {};
         let bundAggregation = {
           population: 0,
-          death_rate: 0,
           cases: 0,
-          cases_per_100k: 0,
+          cases_per_100k: 0, // Will be recalculated later
+          death_rate: 0, // Will be recalculated later
         };
 
         kreisData.features.forEach((feature) => {
@@ -30,35 +30,47 @@ export default function Home() {
           if (!bundeslandAggregation[bl]) {
             bundeslandAggregation[bl] = {
               population: 0,
-              death_rate: 0,
               cases: 0,
-              cases_per_100k: 0,
+              death_rate_numerator: 0, // Sum of (death_rate * population)
+              cases_per_100k: 0, // Will be recalculated
             };
           }
 
           bundeslandAggregation[bl].population += ewz;
           bundeslandAggregation[bl].cases += cases;
-          bundeslandAggregation[bl].cases_per_100k += cases_per_100k;
+          bundeslandAggregation[bl].death_rate_numerator += death_rate * ewz; // Weighted sum
 
-          // Aggregating for Bund
+          // Aggregating for Bund level
           bundAggregation.population += ewz;
           bundAggregation.cases += cases;
-          bundAggregation.cases_per_100k += cases_per_100k;
+          bundAggregation.death_rate_numerator += death_rate * ewz;
         });
 
-        // Calculate weighted average for death rate
+        // Calculate death rate and cases per 100K correctly
         Object.keys(bundeslandAggregation).forEach((bl) => {
           bundeslandAggregation[bl].death_rate =
-            bundeslandAggregation[bl].cases > 0
+            bundeslandAggregation[bl].population > 0
+              ? bundeslandAggregation[bl].death_rate_numerator /
+                bundeslandAggregation[bl].population
+              : 0;
+
+          bundeslandAggregation[bl].cases_per_100k =
+            bundeslandAggregation[bl].population > 0
               ? (bundeslandAggregation[bl].cases /
                   bundeslandAggregation[bl].population) *
-                100
+                100000
               : 0;
         });
 
+        // Calculate Bundes-level death rate and cases per 100K
         bundAggregation.death_rate =
-          bundAggregation.cases > 0
-            ? (bundAggregation.cases / bundAggregation.population) * 100
+          bundAggregation.population > 0
+            ? bundAggregation.death_rate_numerator / bundAggregation.population
+            : 0;
+
+        bundAggregation.cases_per_100k =
+          bundAggregation.population > 0
+            ? (bundAggregation.cases / bundAggregation.population) * 100000
             : 0;
 
         setBundeslandAggregatedData(bundeslandAggregation);

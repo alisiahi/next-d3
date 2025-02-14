@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import BarChart from "./BarChart"; // Import the BarChart component
+import PieChart from "./PieChart";
 
 const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
   const svgRef = useRef(null);
@@ -27,20 +29,6 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
 
         const g = svg.append("g");
 
-        // Tooltip setup
-        const tooltip = d3
-          .select("body")
-          .append("div")
-          .attr("id", "tooltip")
-          .style("position", "absolute")
-          .style("background", "rgba(0, 0, 0, 0.7)")
-          .style("color", "#fff")
-          .style("padding", "5px 10px")
-          .style("border-radius", "5px")
-          .style("font-size", "14px")
-          .style("pointer-events", "none")
-          .style("opacity", 0);
-
         // Mapping for selected data
         const dataKeyMap = {
           Population: "population",
@@ -48,7 +36,6 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
           Cases: "cases",
           "Cases per 100K": "cases_per_100k",
         };
-
         const dataKey = dataKeyMap[selectedData];
 
         // Compute color scale
@@ -76,39 +63,8 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
           .attr("stroke-width", (d) =>
             d.properties.name === selectedBundesland ? 2 : 1
           )
-          .on("mouseover", function (event, d) {
-            const bundeslandName = d.properties.name;
-            const value = bundeslandAggregatedData[bundeslandName]?.[dataKey];
-            const displayValue =
-              value !== undefined ? value.toLocaleString() : "N/A";
-
-            tooltip
-              .style("opacity", 1)
-              .html(
-                `<strong>${bundeslandName}</strong>${
-                  selectedData ? `<br>${selectedData}: ${displayValue}` : ""
-                }`
-              );
-
-            d3.select(this).attr("fill", "rgba(0, 0, 0, 0.3)");
-          })
-          .on("mousemove", function (event) {
-            tooltip
-              .style("left", event.pageX + 10 + "px")
-              .style("top", event.pageY - 20 + "px");
-          })
-          .on("mouseout", function (event, d) {
-            tooltip.style("opacity", 0);
-            const bundeslandName = d.properties.name;
-            const value = bundeslandAggregatedData[bundeslandName]?.[dataKey];
-
-            d3.select(this)
-              .attr("fill", value !== undefined ? colorScale(value) : "#ccc")
-              .attr("stroke", "#000");
-          })
           .on("click", function (event, d) {
             setSelectedBundesland(d.properties.name);
-            zoomToFeature(d);
           });
 
         // D3 zoom functionality
@@ -117,37 +73,6 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
         });
 
         svg.call(zoom);
-
-        const zoomToFeature = (feature) => {
-          const [[x0, y0], [x1, y1]] = pathGenerator.bounds(feature);
-          const dx = x1 - x0;
-          const dy = y1 - y0;
-          const x = (x0 + x1) / 2;
-          const y = (y0 + y1) / 2;
-          const scale = Math.min(4, 0.9 / Math.max(dx / width, dy / height));
-          const translate = [width / 2 - scale * x, height / 2 - scale * y];
-
-          svg
-            .transition()
-            .duration(750)
-            .call(
-              zoom.transform,
-              d3.zoomIdentity.translate(...translate).scale(scale)
-            );
-        };
-
-        const resetZoom = () => {
-          setSelectedBundesland(null);
-          svg
-            .transition()
-            .duration(750)
-            .call(
-              zoom.transform,
-              d3.zoomIdentity.translate(...initialTranslate).scale(initialScale)
-            );
-        };
-
-        window.resetBundeslandZoom = resetZoom;
       } catch (error) {
         console.error("Error loading Bundesland map:", error);
       }
@@ -157,15 +82,31 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
   }, [bundeslandAggregatedData, selectedData]);
 
   return (
-    <div className="relative">
+    <div className="flex flex-col items-center">
       <svg ref={svgRef} width={width} height={height} className="border" />
-      {selectedBundesland && (
-        <button
-          onClick={() => window.resetBundeslandZoom()}
-          className="absolute top-2 left-2 bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Reset View
-        </button>
+
+      {/* Render the bar chart below the map when a data type is selected */}
+      {selectedData && (
+        <div className="flex flex-col">
+          <div className="mt-4 p-20">
+            <h2 className="text-lg font-bold text-center mb-2">
+              {selectedData} by Bundesland
+            </h2>
+            <BarChart
+              bundeslandAggregatedData={bundeslandAggregatedData}
+              selectedData={selectedData}
+            />
+          </div>
+          <div className="flex flex-col justify-center items-center mt-4">
+            <h2 className="text-lg font-bold text-center mb-2">
+              {selectedData} by Bundesland
+            </h2>
+            <PieChart
+              bundeslandAggregatedData={bundeslandAggregatedData}
+              selectedData={selectedData}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
