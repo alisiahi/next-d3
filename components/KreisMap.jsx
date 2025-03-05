@@ -29,13 +29,13 @@ const KreisMap = ({ selectedData }) => {
   useEffect(() => {
     if (!kreisData) return;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
+    const svg = d3.select(svgRef.current); // Gets the <svg> element.
+    svg.selectAll("*").remove(); // Clears previous drawings (important for updates).
 
-    const projection = d3.geoMercator().fitSize([width, height], kreisData);
-    const pathGenerator = d3.geoPath().projection(projection);
+    const projection = d3.geoMercator().fitSize([width, height], kreisData); // Converts lat/lon to x/y positions.
+    const pathGenerator = d3.geoPath().projection(projection); // Generates the actual SVG path from GeoJSON shapes.
 
-    const g = svg.append("g");
+    const g = svg.append("g"); // Create a <g> group inside the SVG. Groups help organize elements inside the SVG (easier for zooming).
 
     const tooltip = d3
       .select("body")
@@ -70,8 +70,8 @@ const KreisMap = ({ selectedData }) => {
     const colorScale = d3
       .scaleSequential(d3.interpolateBlues)
       .domain([min, max]);
-
-    g.selectAll("path")
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    g.selectAll("path") // we draw the districts using .selectAll("path"):
       .data(kreisData.features)
       .enter()
       .append("path")
@@ -120,7 +120,7 @@ const KreisMap = ({ selectedData }) => {
             : "rgba(0, 0, 0, 0.1)"
         );
       });
-
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     const zoom = d3.zoom().on("zoom", (event) => {
       g.attr("transform", event.transform);
     });
@@ -133,7 +133,7 @@ const KreisMap = ({ selectedData }) => {
       const dy = y1 - y0;
       const x = (x0 + x1) / 2;
       const y = (y0 + y1) / 2;
-      const scale = Math.min(4, 0.9 / Math.max(dx / width, dy / height));
+      const scale = Math.min(2, 0.9 / Math.max(dx / width, dy / height));
       const translate = [width / 2 - scale * x, height / 2 - scale * y];
 
       svg
