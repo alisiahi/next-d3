@@ -29,6 +29,7 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
 
         const g = svg.append("g");
 
+        ///////////////////////////////////////////////// Tooltip /////////////////////////////////////////////////
         const tooltip = d3
           .select("body")
           .append("div")
@@ -41,7 +42,7 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
           .style("pointer-events", "none")
           .style("opacity", 0);
 
-        // Mapping for selected data
+        ///////////////////////////////////////////////// Mapping for selected data /////////////////////////////////////////////////
         const dataKeyMap = {
           Population: "population",
           "Death Rate": "death_rate",
@@ -50,7 +51,7 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
         };
         const dataKey = dataKeyMap[selectedData];
 
-        // Compute color scale
+        ///////////////////////////////////////////////// Compute color scale /////////////////////////////////////////////////
         const values = Object.values(bundeslandAggregatedData)
           .map((d) => d[dataKey])
           .filter((v) => v !== undefined);
@@ -61,6 +62,7 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
           .scaleSequential(d3.interpolateBlues)
           .domain([min, max]);
 
+        ///////////////////////////////////////////////// adding features to group /////////////////////////////////////////////////
         g.selectAll("path")
           .data(data.features)
           .enter()
@@ -110,7 +112,7 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
             );
           });
 
-        // D3 zoom functionality
+        ///////////////////////////////////////////////// D3 zoom functionality /////////////////////////////////////////////////
         const zoom = d3.zoom().on("zoom", (event) => {
           g.attr("transform", event.transform);
         });
@@ -173,7 +175,7 @@ const BundeslandMap = ({ bundeslandAggregatedData, selectedData }) => {
           </button>
         )}
       </div>
-      {/* Render the bar chart below the map when a data type is selected */}
+      {/* Render the bar chart and the pie chart below the map when a data type is selected */}
       {selectedData && (
         <div className="flex flex-col">
           <div className="mt-4 p-20">
